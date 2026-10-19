@@ -61,6 +61,13 @@ screenshots are in the parent workspace under
 `dev/workflow-validation/.state/gpuaas-rhai10567/`. Credentials are not stored
 in those records. The user kubeconfig was not changed.
 
+Still images from the user's 2026-10-19 dev recording show the landing page
+and a selected run. The build-date placeholder is intentional for this story.
+
+![Recent Runs with recorded dev data](images/rhai-10567-recent-runs.png)
+
+![The selected run in the existing Overview view](images/rhai-10567-selected-run.png)
+
 ## Rollback
 
 Use a valid login for the named GPUaaS context before running these commands.
