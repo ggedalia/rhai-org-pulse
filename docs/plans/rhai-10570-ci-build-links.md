@@ -19,7 +19,7 @@ validated read-only join; no new database fields or migrations are needed here.
 
 ## Validation on 2026-10-21
 
-- All 106 Workflow Validation unit tests and all 20 browser checks pass.
+- All 107 Workflow Validation unit tests and all 21 browser checks pass.
 - Lint, production build, and OpenAPI validation pass.
 - The full local unit command encountered existing core discovery failures,
   unrelated module timeouts, and the known Releases schedule date assertion.
