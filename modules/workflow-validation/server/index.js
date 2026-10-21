@@ -420,7 +420,11 @@ module.exports = function registerRoutes(router, context) {
    *       - { in: query, name: dateFrom, schema: { type: string, format: date } }
    *       - { in: query, name: dateTo, schema: { type: string, format: date } }
    *     responses:
-   *       200: { description: Test run rows. Build mode adds nullable buildTimestamp in UTC and buildMetadataEnabled. Original test timestamp remains unchanged. }
+   *       200:
+   *         description: >-
+   *           Test run rows. Build mode adds nullable buildTimestamp in UTC and ciBuild
+   *           (platform, jobId, jobName, jobUrl, buildNumber, pipelineId), plus
+   *           buildMetadataEnabled. Original test timestamp remains unchanged.
    *       400: { description: Invalid limit }
    */
   router.get('/test-suites', requireAuth, safe(async function (req, res) {
@@ -509,8 +513,8 @@ module.exports = function registerRoutes(router, context) {
     if (limit !== null) rows = rows.slice(0, limit);
     if (req.query.includeBugs === 'false') {
       return res.json({ ...(req.query.orderBy === 'build' ? { buildMetadataEnabled: buildMode } : {}),
-        rows: rows.map(({ suite, invocationId, timestamp, rhoaiVersion, buildTimestamp }) => ({
-          suite, invocationId, timestamp, rhoaiVersion, buildTimestamp: buildTimestamp || null
+        rows: rows.map(({ suite, invocationId, timestamp, rhoaiVersion, buildTimestamp, ciBuild }) => ({
+          suite, invocationId, timestamp, rhoaiVersion, buildTimestamp: buildTimestamp || null, ciBuild: ciBuild || null
         })) });
     }
     // Naming mismatch: RCA run_id joins to the test-run invocation_id.

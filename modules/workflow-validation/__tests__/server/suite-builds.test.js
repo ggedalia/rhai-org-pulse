@@ -39,4 +39,33 @@ describe('original CI metadata join', () => {
     await expect(attachBuildTimestamps({ mget: async () => { throw new Error('403') } }, [row(1)])).rejects.toThrow('403')
     await expect(attachBuildTimestamps({ mget: async () => ({ docs: [] }) }, [row(1)])).rejects.toThrow('Incomplete')
   })
+
+  it('returns only the verified original Jenkins or GitLab build fields', async () => {
+    const rows = [row(1), row(2), row(3)]
+    const sources = [
+      { ...document(rows[0]), ci_platform: 'jenkins', ci_job_name: 'folder/release-gate',
+        ci_job_url: 'https://jenkins.example/job/folder/job/release-gate/123', ci_build_number: '123' },
+      { ...document(rows[1]), ci_pipeline_id: '789', unrelated_private_field: 'must not reach the browser' }
+    ]
+    const joined = await attachBuildTimestamps({ mget: async (_, ids) => ({ docs: ids.map((id, i) => ({
+      _id: id, found: i < sources.length, _source: sources[i]
+    })) }) }, rows)
+    expect(joined[0].ciBuild).toEqual({ platform: 'jenkins', jobId: '123', jobName: 'folder/release-gate',
+      jobUrl: 'https://jenkins.example/job/folder/job/release-gate/123', buildNumber: '123', pipelineId: null })
+    expect(joined[1].ciBuild).toEqual({ platform: 'gitlab', jobId: '123', jobName: 'release-gate',
+      jobUrl: 'https://gitlab.example/team/project/-/jobs/123', buildNumber: null, pipelineId: '789' })
+    expect(joined[2].ciBuild).toBeNull()
+    expect(JSON.stringify(joined)).not.toContain('private_field')
+  })
+
+  it('does not return a link for conflicting or invalid build associations', async () => {
+    for (const patch of [{ invocation_id: 'other-run' }, { ci_pipeline_id: 'invalid' },
+      { ci_job_url: 'javascript:alert(1)' }, { ci_job_url: 'https://gitlab.example/team/project/-/jobs/123?token=secret' }]) {
+      const run = row(1)
+      const joined = await attachBuildTimestamps({ mget: async (_, ids) => ({ docs: [
+        { _id: ids[0], found: true, _source: { ...document(run), ...patch } }
+      ] }) }, [run])
+      expect(joined[0].ciBuild).toBeNull()
+    }
+  })
 })

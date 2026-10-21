@@ -55,6 +55,39 @@ describe('Recent Runs', () => {
     })
   })
 
+  it('shows original Jenkins and GitLab job identities with separate CI links', async () => {
+    apiRequest.mockResolvedValue({ rows: [
+      { ...fixture.rows[0], ciBuild: { platform: 'jenkins', jobId: '42', buildNumber: '42', jobName: 'folder/release-gate',
+        jobUrl: 'https://jenkins.example/job/folder/job/release-gate/42', pipelineId: null } },
+      { ...fixture.rows[1], ciBuild: { platform: 'gitlab', jobId: '123', buildNumber: null, jobName: 'exploratory-specs',
+        jobUrl: 'https://gitlab.example/team/project/-/jobs/123', pipelineId: '789' } },
+      { ...fixture.rows[2], ciBuild: null }
+    ] })
+    wrapper = mount(RecentRunsView)
+    await flushPromises()
+    const links = wrapper.findAll('a[target="_blank"]')
+    expect(links.map(link => link.text())).toEqual(['Build #42 ↗', 'Job #123 ↗'])
+    expect(links[0].attributes('href')).toBe('https://jenkins.example/job/folder/job/release-gate/42')
+    expect(links[0].attributes('rel')).toBe('noopener noreferrer')
+    expect(links[0].attributes('aria-label')).toContain('folder/release-gate (opens in a new tab)')
+    expect(wrapper.text()).toContain('Pipeline #789')
+    expect(wrapper.findAll('tbody tr')[2].text()).toContain('Unavailable')
+    expect(wrapper.findAll('a').filter(link => link.text() === 'View run')).toHaveLength(3)
+  })
+
+  it('does not create external links from malformed or credential-bearing API values', async () => {
+    for (const jobUrl of ['javascript:alert(1)', 'https://user:secret@jenkins.example/job/test/42',
+      'https://jenkins.example/job/test/43', 'https://jenkins.example/job/test/42?token=secret']) {
+      apiRequest.mockResolvedValue({ rows: [{ ...fixture.rows[0], ciBuild: {
+        platform: 'jenkins', jobId: '42', buildNumber: '42', jobName: 'test', jobUrl
+      } }] })
+      wrapper = mount(RecentRunsView)
+      await flushPromises()
+      expect(wrapper.find('a[target="_blank"]').exists()).toBe(false)
+      wrapper.unmount()
+    }
+  })
+
   it('caps older backend responses at 20 rows', async () => {
     apiRequest.mockResolvedValue({ rows: Array.from({ length: 25 }, (_, i) => ({ ...fixture.rows[0], invocationId: `run-${i}` })) })
     wrapper = mount(RecentRunsView)

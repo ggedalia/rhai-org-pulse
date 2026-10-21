@@ -170,6 +170,34 @@ test.describe('Workflow Validation module @workflow-validation', () => {
     }
   })
 
+  test('shows verified CI build links without changing exact-run navigation', async ({ page }) => {
+    await page.route('**/api/modules/workflow-validation/test-suites?**', route => route.fulfill({
+      json: { buildMetadataEnabled: true, rows: [
+        { suite: 'release-gate', invocationId: 'jenkins-run', buildTimestamp: '2026-10-19T10:30:00.000Z',
+          ciBuild: { platform: 'jenkins', jobId: '42', buildNumber: '42', jobName: 'folder/release-gate',
+            jobUrl: 'https://jenkins.example/job/folder/job/release-gate/42', pipelineId: null } },
+        { suite: 'exploratory-specs', invocationId: 'gitlab-run', ciBuild: { platform: 'gitlab', jobId: '123',
+          jobName: 'exploratory-specs', jobUrl: 'https://gitlab.example/team/project/-/jobs/123', pipelineId: '789', buildNumber: null } },
+        { suite: 'ad-hoc', invocationId: 'unresolved-run', ciBuild: null }
+      ] }
+    }))
+    await page.goto('/#/workflow-validation/recent-runs')
+    const build = page.getByRole('link', { name: 'Build #42 for folder/release-gate (opens in a new tab)', exact: true })
+    await expect(build).toHaveAttribute('href', 'https://jenkins.example/job/folder/job/release-gate/42')
+    await expect(build).toHaveAttribute('target', '_blank')
+    await expect(build).toHaveAttribute('rel', 'noopener noreferrer')
+    await expect(page.getByRole('link', { name: 'Job #123 for exploratory-specs (opens in a new tab)', exact: true }))
+      .toHaveAttribute('href', 'https://gitlab.example/team/project/-/jobs/123')
+    await expect(page.getByRole('row').filter({ hasText: 'gitlab-run' })).toContainText('Pipeline #789')
+    const unresolved = page.getByRole('row').filter({ hasText: 'unresolved-run' })
+    await expect(unresolved).toContainText('Unavailable')
+    await expect(unresolved.locator('a[target="_blank"]')).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'View run jenkins-run', exact: true })).toHaveAttribute('href', /invocationId=jenkins-run/)
+    await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
+    await page.setViewportSize({ width: 320, height: 900 })
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
+  })
+
   test('preserves ordinary test filters after visiting an exact run', async ({ page }) => {
     let ordinaryScope
     let testsScope

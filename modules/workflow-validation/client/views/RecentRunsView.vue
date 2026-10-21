@@ -22,6 +22,7 @@
             <tr>
               <th scope="col" class="px-5 py-3">Test suite</th>
               <th scope="col" class="px-5 py-3">Version</th>
+              <th scope="col" class="px-5 py-3">CI build</th>
               <th scope="col" class="px-5 py-3">Build date and time (UTC)</th>
               <th scope="col" class="px-5 py-3"><span class="sr-only">Run details</span></th>
             </tr>
@@ -33,6 +34,14 @@
                 <div class="mt-1 break-all font-mono text-xs text-gray-500 dark:text-gray-400">{{ run.invocationId }}</div>
               </td>
               <td class="px-5 py-4 font-mono text-xs text-gray-600 dark:text-gray-300">{{ run.rhoaiVersion || 'Version unavailable' }}</td>
+              <td class="px-5 py-4 text-gray-600 dark:text-gray-300">
+                <template v-if="buildLink(run.ciBuild)">
+                  <div class="max-w-xs break-words text-xs">{{ run.ciBuild.platform === 'jenkins' ? 'Jenkins' : 'GitLab' }} · {{ run.ciBuild.jobName }}</div>
+                  <a :href="buildLink(run.ciBuild)" target="_blank" rel="noopener noreferrer" :aria-label="`${buildLabel(run.ciBuild)} for ${run.ciBuild.jobName} (opens in a new tab)`" class="mt-1 inline-block whitespace-nowrap font-medium text-primary-700 underline hover:text-primary-900 dark:text-primary-300">{{ buildLabel(run.ciBuild) }}<span aria-hidden="true"> ↗</span></a>
+                  <div v-if="run.ciBuild.platform === 'gitlab' && run.ciBuild.pipelineId" class="mt-1 whitespace-nowrap text-xs">Pipeline #{{ run.ciBuild.pipelineId }}</div>
+                </template>
+                <span v-else>Unavailable</span>
+              </td>
               <td class="whitespace-nowrap px-5 py-4 text-gray-600 dark:text-gray-300">
                 <time v-if="validBuildTime(run.buildTimestamp)" :datetime="run.buildTimestamp">{{ formatBuildTime(run.buildTimestamp) }}</time>
                 <span v-else>{{ buildMetadataEnabled ? 'Unavailable' : 'Not available yet' }}</span>
@@ -43,7 +52,7 @@
               </td>
             </tr>
             <tr v-if="!runs.length">
-              <td colspan="4" class="px-5 py-12 text-center text-gray-500 dark:text-gray-400">No runs are available.</td>
+              <td colspan="5" class="px-5 py-12 text-center text-gray-500 dark:text-gray-400">No runs are available.</td>
             </tr>
           </tbody>
         </table>
@@ -68,6 +77,24 @@ const loading = ref(false)
 const hasLoaded = ref(false)
 const error = ref('')
 let active = true
+
+function buildLink(build) {
+  if (!build || !['jenkins', 'gitlab'].includes(build.platform)
+      || typeof build.jobName !== 'string' || !build.jobName.trim()
+      || !/^[1-9]\d*$/.test(build.jobId)) return null
+  try {
+    const url = new URL(build.jobUrl)
+    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) return null
+    if (build.platform === 'gitlab') {
+      if (!url.pathname.endsWith(`/-/jobs/${build.jobId}`)) return null
+    } else if (build.buildNumber !== build.jobId
+        || !/^(?:\/job\/[^/]+)+\/\d+$/.test(url.pathname)
+        || !url.pathname.endsWith(`/${build.jobId}`)) return null
+    return url.href
+  } catch { return null }
+}
+
+const buildLabel = build => build.platform === 'jenkins' ? `Build #${build.buildNumber}` : `Job #${build.jobId}`
 
 function runLink(run) {
   const params = new URLSearchParams({

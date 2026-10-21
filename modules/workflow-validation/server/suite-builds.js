@@ -24,6 +24,7 @@ function buildTimestamp(document, row) {
     if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) return null;
     if (document.ci_platform === 'gitlab') {
       if (!url.pathname.endsWith(`/-/jobs/${document.ci_job_id}`) || document.ci_build_number) return null;
+      if (document.ci_pipeline_id !== undefined && !/^[1-9]\d*$/.test(document.ci_pipeline_id)) return null;
     } else {
       const name = url.pathname.split('/').slice(2, -1).filter((_, i) => i % 2 === 0)
         .map(decodeURIComponent).join('/');
@@ -47,8 +48,18 @@ async function attachBuildTimestamps(client, rows) {
       if (item.found) documents.set(item._id, item._source);
     }
   }
-  return rows.map(row => ({ ...row,
-    buildTimestamp: buildTimestamp(documents.get(suiteBuildId(row.suite, row.invocationId)), row) }));
+  return rows.map(row => {
+    const document = documents.get(suiteBuildId(row.suite, row.invocationId));
+    const timestamp = buildTimestamp(document, row);
+    return { ...row, buildTimestamp: timestamp, ciBuild: timestamp ? {
+      platform: document.ci_platform,
+      jobId: document.ci_job_id,
+      jobName: document.ci_job_name,
+      jobUrl: document.ci_job_url,
+      buildNumber: document.ci_platform === 'jenkins' ? document.ci_build_number : null,
+      pipelineId: document.ci_platform === 'gitlab' ? document.ci_pipeline_id || null : null
+    } : null };
+  });
 }
 
 function compareRuns(field) {
