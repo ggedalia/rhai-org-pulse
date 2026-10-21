@@ -155,6 +155,31 @@ test.describe('Workflow Validation module @workflow-validation', () => {
     }
   })
 
+  test('preserves ordinary test filters after visiting an exact run', async ({ page }) => {
+    let ordinaryScope
+    let testsScope
+    let returningToTests = false
+    page.on('request', request => {
+      const url = new URL(request.url())
+      if (url.pathname.endsWith('/runs')) {
+        if (returningToTests) testsScope = url.searchParams
+        else ordinaryScope = url.searchParams
+      }
+    })
+    await page.goto('/#/workflow-validation/runs?version=3.6&datePreset=custom&dateFrom=2026-09-01&dateTo=2026-09-30')
+    await expect(page.getByRole('heading', { name: 'Test Results', exact: true })).toBeVisible()
+    await expect.poll(() => Boolean(ordinaryScope)).toBe(true)
+    await page.evaluate(() => { window.location.hash = '/workflow-validation/recent-runs' })
+    await page.getByRole('link', { name: 'View run invocation-1', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Test Results', exact: true })).toBeVisible()
+    returningToTests = true
+    await page.evaluate(() => { window.location.hash = '/workflow-validation/runs' })
+    await expect.poll(() => Boolean(testsScope)).toBe(true)
+    for (const key of ['version', 'testSuite', 'invocationId', 'dateFrom', 'dateTo']) {
+      expect(testsScope.get(key)).toBe(ordinaryScope.get(key))
+    }
+  })
+
   test('reports a missing selected run without opening the latest run', async ({ page }) => {
     await page.route('**/api/modules/workflow-validation/test-suites/productization/removed-run', route => route.fulfill({
       status: 404, json: { error: 'Test run not found' }

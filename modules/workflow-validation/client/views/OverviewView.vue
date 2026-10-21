@@ -113,7 +113,7 @@ import {
 
 const nav = inject('moduleNav')
 const FILTER_KEYS = ['version', 'testSuite', 'invocationId', 'datePreset', 'dateFrom', 'dateTo']
-hydrateFilters(nav?.params?.value, FILTER_KEYS)
+if (nav?.params?.value?.exactRun !== '1') hydrateFilters(nav?.params?.value, FILTER_KEYS)
 const { getOverview, getCharts, getTestSuite } = useWorkflowValidation()
 const exactRun = computed(() => nav?.params?.value?.exactRun === '1')
 const costsVisible = useCostVisibility()

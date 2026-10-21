@@ -344,6 +344,17 @@ describe('Dashboard navigation from Recent Runs', () => {
     expect(wrapper.get('a[href="#/workflow-validation/recent-runs"]').text()).toBe('Recent Runs')
   })
 
+  it('keeps shared filters unchanged while an exact run is open', async () => {
+    Object.assign(filters, { version: '3.5', testSuite: 'exploratory-specs', invocationId: 'previous-run',
+      datePreset: 'custom', dateFrom: '2026-09-01', dateTo: '2026-09-30' })
+    const previous = { ...filters }
+    wrapper = mount(OverviewView, { global: { provide: { moduleNav: nav } } })
+    await flushPromises()
+    expect({ ...filters }).toEqual(previous)
+    const requests = apiRequest.mock.calls.map(([path]) => path).filter(path => /\/(overview|charts)/.test(path))
+    expect(requests.every(path => new URL(path, 'http://localhost').searchParams.get('invocationId') === 'selected-run')).toBe(true)
+  })
+
   it('reports a removed run without falling back to another invocation', async () => {
     apiRequest.mockRejectedValueOnce(Object.assign(new Error('Not found'), { status: 404 }))
     wrapper = mount(OverviewView, { global: { provide: { moduleNav: nav } } })
