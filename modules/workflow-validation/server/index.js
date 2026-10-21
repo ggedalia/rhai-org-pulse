@@ -502,6 +502,7 @@ module.exports = function registerRoutes(router, context) {
       };
     });
     if (buildMode) rows = await attachBuildTimestamps((await getRuntimeClient()).client, rows);
+    rows.forEach(row => { delete row.firstTestTimestamp; });
     rows.sort(compareRuns(buildMode ? 'buildTimestamp' : 'timestamp'));
 
     if (req.query.latest === 'true' && req.query.suite) rows = rows.slice(0, 1);

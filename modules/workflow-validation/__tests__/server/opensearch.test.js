@@ -378,6 +378,7 @@ describe('workflow-validation live schema routes', () => {
       suite: 'productization', invocationId: 'invocation-1', tests: 3,
       passed: 2, failed: 1, passRate: 2 / 3, duration: 180, rhodsOperatorDigest: 'abcdef0123456789'
     })])
+    expect(response.body.rows[0]).not.toHaveProperty('firstTestTimestamp')
   })
 
   it('selects the newest 20 run groups across all composite pages without loading bugs', async () => {
