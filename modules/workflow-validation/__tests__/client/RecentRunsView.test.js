@@ -19,7 +19,7 @@ describe('Recent Runs', () => {
     Object.assign(filters, { version: 'older', testSuite: 'another-suite', invocationId: 'another-run', verdict: 'FAIL', q: 'old search' })
     wrapper = mount(RecentRunsView)
     await flushPromises()
-    expect(apiRequest).toHaveBeenCalledExactlyOnceWith('/modules/workflow-validation/test-suites?limit=20&includeBugs=false')
+    expect(apiRequest).toHaveBeenCalledExactlyOnceWith('/modules/workflow-validation/test-suites?limit=20&includeBugs=false&orderBy=build')
     expect(wrapper.findAll('tbody tr')).toHaveLength(3)
     expect(wrapper.text()).toContain('Release Gate')
     expect(wrapper.text()).toContain('Exploratory Specs')
@@ -27,6 +27,21 @@ describe('Recent Runs', () => {
     expect(wrapper.findAll('tbody tr')[0].text()).toContain('Not available yet')
     expect(wrapper.text()).not.toContain('2026-10-19')
     expect(wrapper.text()).not.toContain('Design preview')
+  })
+
+  it('renders the actual CI start in UTC and leaves missing values unavailable', async () => {
+    apiRequest.mockResolvedValue({ buildMetadataEnabled: true, rows: [
+      { ...fixture.rows[0], buildTimestamp: '2026-10-19T10:30:00.000Z' },
+      { ...fixture.rows[1], buildTimestamp: null },
+      { ...fixture.rows[2], buildTimestamp: 'invalid' }
+    ] })
+    wrapper = mount(RecentRunsView)
+    await flushPromises()
+    expect(wrapper.get('time').attributes('datetime')).toBe('2026-10-19T10:30:00.000Z')
+    expect(wrapper.get('time').text()).toContain('10:30 AM')
+    expect(wrapper.text()).toContain('UTC')
+    expect(wrapper.findAll('tbody tr')[1].text()).toContain('Unavailable')
+    expect(wrapper.findAll('time')).toHaveLength(1)
   })
 
   it('links to the exact dashboard run and explicitly clears an unavailable version', async () => {
