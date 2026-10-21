@@ -17,11 +17,11 @@ invocation. It applies `limit` after reading all composite aggregation pages.
 and includes the existing counts and product bugs. `includeBugs=false` returns
 only the metadata fields above and skips product-bug retrieval.
 
-Build-time integration is deferred. `buildTimestamp` is always null in this
-response. Recent Runs shows “Not available yet” in that column. The existing
-test timestamp must not be presented as a verified build timestamp.
-Actual build dates and selecting/ordering the latest 20 runs by build time
-are tracked together in [RHAI-10898](https://redhat.atlassian.net/browse/RHAI-10898).
+This example omits `orderBy`, so it uses test-time ordering and `buildTimestamp`
+is null. Enabled `orderBy=build` requests can return verified CI build dates,
+as described below. Without enabled build metadata, Recent Runs shows
+“Not available yet” in that column. The existing test timestamp must not be
+presented as a verified build timestamp.
 
 ## Releases E2E Results — `data/releases/build-health/runs.json`
 
