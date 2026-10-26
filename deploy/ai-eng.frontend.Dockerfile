@@ -11,6 +11,9 @@ FROM quay.io/org-pulse/org-pulse-core-frontend-builder:${CORE_TAG} AS build
 # Install AI Eng-specific frontend dependencies (core deps already present)
 RUN npm install --no-save mermaid @dagrejs/dagre @vue-flow/core @vue-flow/background @vue-flow/controls @vue-flow/minimap
 
+# Refresh the core-provided sanitizer within its supported dependency range.
+RUN npm update --no-save dompurify
+
 # Add platform customizations
 COPY platform/ ./platform/
 

@@ -1711,11 +1711,18 @@ AI review scores and metadata pushed by the strat-creator pipeline via the AI Im
 | `approvedBy` | string\|null | Who added the sign-off label |
 | `approvedAt` | string\|null | When the sign-off label was added |
 | `scores` | object | Per-dimension scores (0-2) plus `total` (0-8) |
-| `reviewers` | object | Per-dimension verdicts (`approve\|revise\|reject`) |
+| `reviewers` | object | Per-dimension verdicts (`approve\|revise\|reject`); architecture also permits `skipped` when no assessment was performed |
 | `labels` | string[] | Label snapshot from the AI pipeline push |
 | `reviewedAt` | string | ISO 8601 timestamp of this review |
 | `runId` | string | Pipeline run identifier |
 | `history` | array | Previous review snapshots (max 20, newest first) |
+
+The overall `recommendation` and `needsAttention` come from the pipeline's
+numeric gate. Individual reviewer verdicts may disagree. An architecture
+`skipped` value records the absence of an assessment and does not imply approval
+or change that numeric decision. `pending` is provisional and is rejected by
+the completed feature-review API in every dimension. Publishers must retain
+unfinished work locally until its assessments are complete.
 
 **Optional — Traffic Signals (`trafficSignals`):**
 
@@ -2849,6 +2856,28 @@ The dataset is four separate JSON files under `data/system-health/test-execution
 **Upload receipt:** `data/system-health/test-execution/last-upload.json` records `{ uploadedAt, uploadedBy, files }` after each bulk write.
 
 ---
+
+## Product Builds Channels API
+
+`GET /api/modules/product-builds/channels?limit=1000&offset=0` proxies the
+configured dashboard's `{ source, as_of, channels }` response and pagination
+headers. The client follows additional pages to populate the matrix.
+`GET /api/modules/product-builds/channels/{name}` returns
+`{ source, as_of, channel }`, with `wheels` and `drops` included in the channel.
+Org Pulse does not persist or enrich these responses.
+
+The dashboard uses `source: "dashboard"`, numeric RHEL version strings such as
+`"9.8"`, and display release labels such as `"RHOAI 3.6-EA2"`.
+`latest_drop` can be null and `drops` can be empty. Wheels contain `name` and
+`version`; `kind` and the summary's `wheel_kinds` are optional. Per-drop
+`changes` may be empty and `torch_version` may be null. These missing values
+are preserved rather than inferred. `as_of` is the newest channel metadata
+update across the collection, not a guarantee of package-crawl freshness.
+
+The representative list and detail contracts in
+`fixtures/product-builds/channels-api.json` support deterministic tests.
+They are not a live-data fallback. Only demo mode without a configured
+dashboard URL uses the separate sample catalog (`source: "sample"`).
 
 ## AI Catalyst Feed Configuration
 
