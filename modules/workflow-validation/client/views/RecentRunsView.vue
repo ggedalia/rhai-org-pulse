@@ -22,7 +22,6 @@
             <tr>
               <th scope="col" class="px-5 py-3">Test suite</th>
               <th scope="col" class="px-5 py-3">Version</th>
-              <th scope="col" class="px-5 py-3">Build date and time (UTC)</th>
               <th scope="col" class="px-5 py-3"><span class="sr-only">Run details</span></th>
             </tr>
           </thead>
@@ -33,17 +32,13 @@
                 <div class="mt-1 break-all font-mono text-xs text-gray-500 dark:text-gray-400">{{ run.invocationId }}</div>
               </td>
               <td class="px-5 py-4 font-mono text-xs text-gray-600 dark:text-gray-300">{{ run.rhoaiVersion || 'Version unavailable' }}</td>
-              <td class="whitespace-nowrap px-5 py-4 text-gray-600 dark:text-gray-300">
-                <time v-if="validBuildTime(run.buildTimestamp)" :datetime="run.buildTimestamp">{{ formatBuildTime(run.buildTimestamp) }}</time>
-                <span v-else>{{ buildMetadataEnabled ? 'Unavailable' : 'Not available yet' }}</span>
-              </td>
               <td class="px-5 py-4 text-right">
                 <a v-if="run.suite && run.invocationId" :href="runLink(run)" :aria-label="`View run ${run.invocationId}`" class="whitespace-nowrap font-medium text-primary-700 underline hover:text-primary-900 dark:text-primary-300">View run</a>
                 <span v-else class="text-xs text-gray-500 dark:text-gray-400">Run details unavailable</span>
               </td>
             </tr>
             <tr v-if="!runs.length">
-              <td colspan="4" class="px-5 py-12 text-center text-gray-500 dark:text-gray-400">No runs are available.</td>
+              <td colspan="3" class="px-5 py-12 text-center text-gray-500 dark:text-gray-400">No runs are available.</td>
             </tr>
           </tbody>
         </table>
@@ -58,12 +53,6 @@ import { formatSuiteName, useWorkflowValidation } from '../composables/useWorkfl
 
 const { getRecentRuns } = useWorkflowValidation()
 const runs = ref([])
-const buildMetadataEnabled = ref(false)
-const dateFormatter = new Intl.DateTimeFormat('en-US', {
-  dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC'
-})
-const validBuildTime = value => typeof value === 'string' && Number.isFinite(Date.parse(value))
-const formatBuildTime = value => dateFormatter.format(new Date(value))
 const loading = ref(false)
 const hasLoaded = ref(false)
 const error = ref('')
@@ -86,7 +75,6 @@ async function load() {
     const data = await getRecentRuns()
     if (!active) return
     runs.value = data.rows.slice(0, 20)
-    buildMetadataEnabled.value = data.buildMetadataEnabled === true
     hasLoaded.value = true
   } catch (err) {
     if (!active) return

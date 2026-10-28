@@ -451,7 +451,6 @@ describe('workflow-validation live schema routes', () => {
       suite: 'productization', invocationId: 'invocation-1', tests: 3,
       passed: 2, failed: 1, passRate: 2 / 3, duration: 180, rhodsOperatorDigest: 'abcdef0123456789'
     })])
-    expect(response.body.rows[0]).not.toHaveProperty('firstTestTimestamp')
   })
 
   it('selects the newest 20 run groups across all composite pages without loading bugs', async () => {
@@ -477,7 +476,7 @@ describe('workflow-validation live schema routes', () => {
     await register()['/test-suites'].at(-1)({ query: { limit: '20', includeBugs: 'false' } }, response)
     expect(request).toHaveBeenCalledTimes(2)
     expect(response.body.rows.map(row => row.invocationId)).toEqual(Array.from({ length: 20 }, (_, i) => `run-${24 - i}`))
-    expect(response.body.rows.every(row => row.buildTimestamp === null)).toBe(true)
+    expect(response.body.rows.every(row => Object.keys(row).sort().join(',') === 'invocationId,rhoaiVersion,suite,timestamp')).toBe(true)
   })
 
   it('keeps missing metadata and orders tied or missing timestamps consistently', async () => {
@@ -493,7 +492,7 @@ describe('workflow-validation live schema routes', () => {
     const response = makeResponse()
     await register()['/test-suites'].at(-1)({ query: { limit: '20', includeBugs: 'false' } }, response)
     expect(response.body.rows.map(row => row.invocationId)).toEqual(['a', 'z', 'invalid', 'missing'])
-    expect(response.body.rows.every(row => row.rhoaiVersion === null && row.buildTimestamp === null)).toBe(true)
+    expect(response.body.rows.every(row => row.rhoaiVersion === null)).toBe(true)
   })
 
   it.each(['0', '-1', '201', '1.5', '20junk', ''])('rejects invalid run limit %j before querying OpenSearch', async (limit) => {

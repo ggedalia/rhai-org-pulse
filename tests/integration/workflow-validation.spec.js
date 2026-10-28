@@ -123,12 +123,12 @@ test.describe('Workflow Validation module @workflow-validation', () => {
     })
     await page.goto('/#/workflow-validation/recent-runs?version=old&testSuite=old&invocationId=old')
     await expect(page.getByRole('heading', { name: 'Recent Runs', exact: true })).toBeVisible()
-    await expect(page.getByRole('columnheader', { name: 'Build date and time (UTC)' })).toBeVisible()
+    await expect(page.getByRole('columnheader')).toHaveCount(3)
+    await expect(page.getByRole('columnheader', { name: /build|image/i })).toHaveCount(0)
     await expect(page.getByRole('table').locator('tbody tr')).toHaveCount(1)
-    await expect(page.getByRole('table')).toContainText('Not available yet')
     await expect(page.getByText('Design preview', { exact: false })).toHaveCount(0)
     const recentRequest = requests.find(url => url.pathname.endsWith('/test-suites'))
-    expect(Object.fromEntries(recentRequest.searchParams)).toEqual({ limit: '20', includeBugs: 'false', orderBy: 'build' })
+    expect(Object.fromEntries(recentRequest.searchParams)).toEqual({ limit: '20', includeBugs: 'false' })
 
     await page.getByRole('link', { name: 'View run invocation-1' }).click()
     await expect(page).toHaveURL(/overview\?exactRun=1/)
@@ -149,18 +149,19 @@ test.describe('Workflow Validation module @workflow-validation', () => {
     await expect(page.getByRole('heading', { name: 'Recent Runs', exact: true })).toBeVisible()
   })
 
-  test('shows the original CI start in UTC and an unavailable placeholder', async ({ page }) => {
+  test('keeps the landing page free of build data from an older backend', async ({ page }) => {
     await page.route('**/api/modules/workflow-validation/test-suites?**', route => route.fulfill({
       json: { buildMetadataEnabled: true, rows: [
-        { suite: 'release-gate', invocationId: 'original-run', rhoaiVersion: '3.6', buildTimestamp: '2026-10-19T10:30:00.000Z' },
-        { suite: 'ad-hoc', invocationId: 'unresolved-run', buildTimestamp: null }
+        { suite: 'release-gate', invocationId: 'original-run', rhoaiVersion: '3.6', buildTimestamp: '2026-10-19T10:30:00.000Z', operatorImage: { release: '123', buildDate: '2026-07-03T09:28:12Z' } },
+        { suite: 'ad-hoc', invocationId: 'another-run' }
       ] }
     }))
     await page.goto('/#/workflow-validation/recent-runs')
-    const time = page.locator('table time')
-    await expect(time).toHaveAttribute('datetime', '2026-10-19T10:30:00.000Z')
-    await expect(time).toContainText('10:30 AM')
-    await expect(page.getByRole('row').filter({ hasText: 'unresolved-run' })).toContainText('Unavailable')
+    await expect(page.getByRole('table').locator('tbody tr')).toHaveCount(2)
+    await expect(page.getByRole('columnheader')).toHaveCount(3)
+    await expect(page.getByRole('columnheader', { name: /build|image/i })).toHaveCount(0)
+    await expect(page.locator('table time')).toHaveCount(0)
+    await expect(page.getByRole('table')).not.toContainText('10:30')
     await expect(page.getByRole('link', { name: 'View run original-run' })).toHaveAttribute('href', /invocationId=original-run/)
   })
 

@@ -147,10 +147,12 @@ contract, representative tests, and affected Vue transformations together.
 - Searches are read-only and use bounded cursor pages, `search_after`, or
   composite aggregation pagination as appropriate.
 
+## Recent Runs landing page
 
-Build dates use the separate strict `workflow-suite-builds` index. Enable the
-read-only join with `WORKFLOW_VALIDATION_BUILD_TIME_ENABLED=true` after that
-index is provisioned. The landing page requests global build-time order and
-displays UTC. Disable the flag to restore the previous placeholder behavior.
-Original execution documents and test-time ordering for other API clients stay
-unchanged. See `docs/DATA-FORMATS.md` for the join and missing-data rules.
+Dashboard opens Recent Runs. It lists up to 20 suite/invocation groups across
+all recorded versions, ordered by latest execution time. Each row shows the
+suite, recorded version, and View run. The page uses the existing
+`/test-suites?limit=20&includeBugs=false` API and ignores shared detail filters.
+View run opens the existing Overview view for that exact suite and invocation.
+Loading, empty, retry, and refresh states are covered by client and integration
+tests. Build metadata is outside this landing-page change.

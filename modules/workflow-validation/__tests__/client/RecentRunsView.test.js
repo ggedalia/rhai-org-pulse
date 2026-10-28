@@ -19,29 +19,26 @@ describe('Recent Runs', () => {
     Object.assign(filters, { version: 'older', testSuite: 'another-suite', invocationId: 'another-run', verdict: 'FAIL', q: 'old search' })
     wrapper = mount(RecentRunsView)
     await flushPromises()
-    expect(apiRequest).toHaveBeenCalledExactlyOnceWith('/modules/workflow-validation/test-suites?limit=20&includeBugs=false&orderBy=build')
+    expect(apiRequest).toHaveBeenCalledExactlyOnceWith('/modules/workflow-validation/test-suites?limit=20&includeBugs=false')
     expect(wrapper.findAll('tbody tr')).toHaveLength(3)
     expect(wrapper.text()).toContain('Release Gate')
     expect(wrapper.text()).toContain('Exploratory Specs')
     expect(wrapper.text()).toContain('Version unavailable')
-    expect(wrapper.findAll('tbody tr')[0].text()).toContain('Not available yet')
+    expect(wrapper.findAll('thead th').map(cell => cell.text())).toEqual(['Test suite', 'Version', 'Run details'])
     expect(wrapper.text()).not.toContain('2026-10-19')
     expect(wrapper.text()).not.toContain('Design preview')
   })
 
-  it('renders the actual CI start in UTC and leaves missing values unavailable', async () => {
+  it('shows only landing-page columns when a backend includes extra build metadata', async () => {
     apiRequest.mockResolvedValue({ buildMetadataEnabled: true, rows: [
-      { ...fixture.rows[0], buildTimestamp: '2026-10-19T10:30:00.000Z' },
-      { ...fixture.rows[1], buildTimestamp: null },
-      { ...fixture.rows[2], buildTimestamp: 'invalid' }
+      { ...fixture.rows[0], buildTimestamp: '2026-10-19T10:30:00.000Z', operatorImage: { release: '123', buildDate: '2026-07-03T09:28:12Z' } },
+      fixture.rows[1]
     ] })
     wrapper = mount(RecentRunsView)
     await flushPromises()
-    expect(wrapper.get('time').attributes('datetime')).toBe('2026-10-19T10:30:00.000Z')
-    expect(wrapper.get('time').text()).toContain('10:30 AM')
-    expect(wrapper.text()).toContain('UTC')
-    expect(wrapper.findAll('tbody tr')[1].text()).toContain('Unavailable')
-    expect(wrapper.findAll('time')).toHaveLength(1)
+    expect(wrapper.findAll('thead th')).toHaveLength(3)
+    expect(wrapper.findAll('time')).toHaveLength(0)
+    expect(wrapper.text()).not.toMatch(/Build|Jenkins|Image release|2026-07-03|10:30/)
   })
 
   it('links to the exact dashboard run and explicitly clears an unavailable version', async () => {

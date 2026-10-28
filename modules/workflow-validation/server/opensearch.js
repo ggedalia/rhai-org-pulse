@@ -75,10 +75,7 @@ function createOpenSearchClient(config = {}, fetchImpl = fetch) {
     return { executions, tasks, rootCauses };
   }
 
-  const mget = (index, ids) => request(`/${index}/_mget`, {
-    method: 'POST', body: JSON.stringify({ ids })
-  });
-  return { search, status, mget };
+  return { search, status };
 }
 
 function boolQuery(filter, must) {
