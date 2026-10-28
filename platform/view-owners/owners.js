@@ -46,6 +46,7 @@ export const viewOwners = {
   'product-builds/artifact-detail':                'Pavol Pitonak',
   'product-builds/base-images':                    'Pavol Pitonak',
   'product-builds/builder-images':                 'Pavol Pitonak',
+  'product-builds/channels':                       'Einat Pacifici',
   'product-builds/drop-detail':                    'Pavol Pitonak',
   'product-builds/overview':                       'Giulia Naponiello',
   'product-builds/package-analysis':               'Einat Pacifici',
@@ -125,8 +126,8 @@ export const viewOwners = {
   'releases/plan/ai-planner':                      'yuvalluria',
   'releases/plan/bu-feedback':                     'Saiesh Prabhu',
   'releases/plan/feature-readiness':               'Erle Marion',
-  'releases/plan/outcomes':                        'Jen Albertson',
   'releases/plan/pm-hub':                          'Saiesh Prabhu',
+  'releases/plan/tech-debt-prioritization':        'Saiesh Prabhu',
 
   // releases > registry
   'releases/registry/hygiene':                     'Alex Corvin',

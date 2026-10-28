@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 import { apiRequest } from '@shared/client/services/api'
-import { isVisibleProductBug } from '../utils/product-bugs'
+import { isVisibleJiraIssue } from '../utils/product-bugs'
 
 const BASE = '/modules/workflow-validation'
 const EMPTY_FILTER_OPTIONS = { versions: [], providers: [], models: [], workflows: [], testSuites: [] }
@@ -21,6 +21,7 @@ export const filters = reactive({
   action: '',
   q: '',
   jiraScope: '',
+  jiraSuiteMode: 'run',
   testSuite: '',
   invocationId: '',
   datePreset: '90',
@@ -39,6 +40,7 @@ export function resetFilters() {
   filters.action = ''
   filters.q = ''
   filters.jiraScope = ''
+  filters.jiraSuiteMode = 'run'
   filters.testSuite = ''
   filters.invocationId = ''
   filters.datePreset = '90'
@@ -198,8 +200,8 @@ export function displayedTestOutcome(test = {}) {
   const verdict = String(test.verdict || '').toUpperCase()
   if (test.passed === true || verdict === 'PASS') return 'PASS'
   if (!['FAIL', 'ERROR'].includes(verdict) && test.passed !== false) return verdict || 'UNKNOWN'
-  const hasProductBug = (test.productBugs || []).some(isVisibleProductBug)
-  return hasProductBug ? 'FAIL' : 'SKIP'
+  const hasJiraIssue = (test.productBugs || []).some(isVisibleJiraIssue)
+  return hasJiraIssue ? 'FAIL' : 'SKIP'
 }
 
 export function displayedOutcomeCounts(tests = []) {
@@ -214,11 +216,11 @@ export function runOutcomeCounts(run = {}) {
   if (Array.isArray(run.tests)) return displayedOutcomeCounts(run.tests)
   const pass = Number(run.passed) || 0
   const unsuccessful = (Number(run.failed) || 0) + (Number(run.errors) || 0)
-  const productBugTests = new Set((run.productBugs || [])
-    .filter(isVisibleProductBug)
+  const jiraIssueTests = new Set((run.productBugs || [])
+    .filter(isVisibleJiraIssue)
     .map((finding) => finding.workflow || finding.root_cause_id || finding.id)
     .filter(Boolean)).size
-  const fail = Math.min(unsuccessful, productBugTests)
+  const fail = Math.min(unsuccessful, jiraIssueTests)
   return { pass, fail, skip: Math.max(0, unsuccessful - fail) }
 }
 
@@ -231,8 +233,8 @@ export function useWorkflowValidation() {
   const getCharts = (extra = {}) => filteredRequest('charts', ['version', 'dateFrom', 'dateTo', 'testSuite', 'invocationId'], extra)
   const getRuns = (cursor = '', size = 25, sorting = {}) => filteredRequest('runs', ['version', 'verdict', 'workflow', 'q', 'testSuite', 'invocationId', 'dateFrom', 'dateTo'], { cursor, size, ...sorting })
   const getRun = (executionId) => apiRequest(`${BASE}/runs/${encodeURIComponent(executionId)}`)
-  const getBugs = (cursor = '', size = 50) => filteredRequest('bugs', ['version', 'testSuite', 'invocationId', 'workflow', 'category', 'action', 'q', 'dateFrom', 'dateTo'], { cursor, size })
-  const getWorkflows = (extra = {}) => filteredRequest('workflows', ['version', 'q', 'dateFrom', 'dateTo'], extra)
+  const getBugs = (cursor = '', size = 50, distinct = true) => filteredRequest('bugs', ['version', 'testSuite', 'invocationId', 'workflow', 'category', 'action', 'q', 'dateFrom', 'dateTo'], { cursor, size, distinct })
+  const getWorkflows = (extra = {}) => filteredRequest('workflows', ['version', 'q', 'testSuite', 'dateFrom', 'dateTo'], extra)
   const getWorkflowHistory = (workflow) => filteredRequest('workflow-history', ['version', 'dateFrom', 'dateTo'], { workflow })
   const getCompareRuns = (testSuite = '') => apiRequest(`${BASE}/compare-runs${buildQuery({ testSuite }, {})}`)
   const getRunCompare = (baselineInvocation, targetInvocation, testSuite) => apiRequest(`${BASE}/run-compare${buildQuery({ baselineInvocation, targetInvocation, testSuite }, {})}`)
